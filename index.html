@@ -8,16 +8,17 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px;color:#fff}
 .container{max-width:500px;margin:0 auto}
-h1{text-align:center;margin-bottom:20px;font-size:24px}
-.box{background:rgba(255,255,255,0.15);padding:15px 20px;margin:10px 0;border-radius:15px;display:flex;justify-content:space-between;align-items:center}
-.label{font-weight:600;font-size:14px}
-.value{font-family:monospace;font-size:13px;background:rgba(0,0,0,0.3);padding:5px 10px;border-radius:8px;max-width:60%;text-align:right;word-break:break-all}
-.footer{text-align:center;margin-top:25px;font-size:12px;opacity:0.7}
+h1{text-align:center;margin-bottom:20px;font-size:22px}
+.box{background:rgba(255,255,255,0.15);padding:12px 18px;margin:8px 0;border-radius:12px;display:flex;justify-content:space-between;align-items:center}
+.label{font-weight:600;font-size:13px}
+.value{font-family:monospace;font-size:12px;background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:6px;max-width:60%;text-align:right;word-break:break-all}
+.footer{text-align:center;margin-top:20px;font-size:11px;opacity:0.7}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>📱 তোমার ডিভাইস তথ্য</h1>
+
 <div class="box"><span class="label">🌐 IP</span><span class="value" id="ip">লোড...</span></div>
 <div class="box"><span class="label">🏙️ শহর</span><span class="value" id="city">লোড...</span></div>
 <div class="box"><span class="label">🌍 দেশ</span><span class="value" id="country">লোড...</span></div>
@@ -29,37 +30,98 @@ h1{text-align:center;margin-bottom:20px;font-size:24px}
 <div class="box"><span class="label">📱 Device</span><span class="value" id="device">লোড...</span></div>
 <div class="box"><span class="label">🔋 Battery</span><span class="value" id="battery">লোড...</span></div>
 <div class="box"><span class="label">📶 Network</span><span class="value" id="network">লোড...</span></div>
+
 <div class="footer">Powered by 🤖 Device Info Bot</div>
 </div>
+
 <script>
-fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
-document.getElementById('ip').innerText=d.ip||'N/A';
-document.getElementById('city').innerText=d.city||'N/A';
-document.getElementById('country').innerText=d.country_name||'N/A';
-}).catch(()=>{document.getElementById('ip').innerText='Error'});
-const ua=navigator.userAgent;
-let os='Unknown';
-if(ua.includes('Android'))os='📱 Android';
-else if(ua.includes('iPhone')||ua.includes('iPad'))os='🍎 iOS';
-else if(ua.includes('Windows'))os='🪟 Windows';
-else if(ua.includes('Mac'))os='🍏 macOS';
-else if(ua.includes('Linux'))os='🐧 Linux';
-document.getElementById('os').innerText=os;
-let browser='Unknown';
-if(ua.includes('Chrome')&&!ua.includes('Edg'))browser='🌐 Chrome';
-else if(ua.includes('Firefox'))browser='🦊 Firefox';
-else if(ua.includes('Safari')&&!ua.includes('Chrome'))browser='🧭 Safari';
-else if(ua.includes('Edg'))browser='🔵 Edge';
-document.getElementById('browser').innerText=browser;
-document.getElementById('screen').innerText=window.screen.width+' × '+window.screen.height;
-document.getElementById('lang').innerText=navigator.language;
-document.getElementById('tz').innerText=Intl.DateTimeFormat().resolvedOptions().timeZone;
-let dt='💻 Desktop';
-if(/Android|iPhone|iPad|iPod/i.test(ua))dt='📱 Mobile';
-document.getElementById('device').innerText=dt;
-if('getBattery' in navigator){navigator.getBattery().then(b=>{const u=()=>{document.getElementById('battery').innerText=Math.round(b.level*100)+'% '+(b.charging?'⚡':'🔋')};u();b.addEventListener('levelchange',u);b.addEventListener('chargingchange',u)})}else{document.getElementById('battery').innerText='❌ N/A'}
-const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-if(conn){document.getElementById('network').innerText=conn.effectiveType?conn.effectiveType.toUpperCase():'N/A'}else{document.getElementById('network').innerText='❌ N/A'}
+// IP + Location (multi API fallback)
+async function getIPInfo() {
+  const apis = [
+    'https://ipwho.is/',
+    'https://ipapi.co/json/',
+    'https://api.ipify.org?format=json'
+  ];
+
+  for (let i = 0; i < apis.length; i++) {
+    try {
+      const r = await fetch(apis[i], { timeout: 5000 });
+      const d = await r.json();
+
+      let ip = d.ip || 'N/A';
+      let city = d.city || d.region || 'N/A';
+      let country = d.country || d.country_name || 'N/A';
+
+      document.getElementById('ip').innerText = ip;
+      document.getElementById('city').innerText = city;
+      document.getElementById('country').innerText = country;
+      return;
+    } catch(e) {
+      continue;
+    }
+  }
+
+  document.getElementById('ip').innerText = 'Error';
+  document.getElementById('city').innerText = 'Error';
+  document.getElementById('country').innerText = 'Error';
+}
+
+getIPInfo();
+
+// OS + Browser
+const ua = navigator.userAgent;
+let os = 'Unknown';
+if(ua.includes('Android')) os = '📱 Android';
+else if(ua.includes('iPhone') || ua.includes('iPad')) os = '🍎 iOS';
+else if(ua.includes('Windows')) os = '🪟 Windows';
+else if(ua.includes('Mac')) os = '🍏 macOS';
+else if(ua.includes('Linux')) os = '🐧 Linux';
+document.getElementById('os').innerText = os;
+
+let browser = 'Unknown';
+if(ua.includes('Chrome') && !ua.includes('Edg')) browser = '🌐 Chrome';
+else if(ua.includes('Firefox')) browser = '🦊 Firefox';
+else if(ua.includes('Safari') && !ua.includes('Chrome')) browser = '🧭 Safari';
+else if(ua.includes('Edg')) browser = '🔵 Edge';
+document.getElementById('browser').innerText = browser;
+
+// Screen
+document.getElementById('screen').innerText = window.screen.width + ' × ' + window.screen.height;
+
+// Language
+document.getElementById('lang').innerText = navigator.language;
+
+// Timezone
+document.getElementById('tz').innerText = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Device
+let dt = '💻 Desktop';
+if(/Android|iPhone|iPad|iPod/i.test(ua)) dt = '📱 Mobile';
+document.getElementById('device').innerText = dt;
+
+// Battery
+if('getBattery' in navigator){
+  navigator.getBattery().then(b => {
+    const u = () => {
+      document.getElementById('battery').innerText =
+        Math.round(b.level*100) + '% ' + (b.charging ? '⚡' : '🔋');
+    };
+    u();
+    b.addEventListener('levelchange', u);
+    b.addEventListener('chargingchange', u);
+  });
+} else {
+  document.getElementById('battery').innerText = '❌ N/A';
+}
+
+// Network
+const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+if(conn){
+  document.getElementById('network').innerText =
+    conn.effectiveType ? conn.effectiveType.toUpperCase() : 'N/A';
+} else {
+  document.getElementById('network').innerText = '❌ N/A';
+}
 </script>
 </body>
 </html>
